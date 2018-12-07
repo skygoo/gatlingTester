@@ -7,12 +7,14 @@ import util.SecureUtil
 
 import scala.concurrent.duration._
 import scala.util.Random
+
 /**
   * Created by sky
   * Date on 2018/12/7
   * Time at 下午2:20
   */
-class EvokeApiTest extends Simulation{
+class EvokeApiTest extends Simulation {
+
   import io.circe.parser.decode
   import io.circe.syntax._
   import io.circe._
@@ -39,18 +41,44 @@ class EvokeApiTest extends Simulation{
   val accessKey = ""
 
   case class CollectData4h5(
-                             openId:String,//微信用户open_id
-                             url:String,//h5链接
-                             pageName:String,//h5页面英文名称
-                             createTime:Long,  //用户访问事件
-                             accessKey:String  //校验
+                             openId: String, //微信用户open_id
+                             url: String, //h5链接
+                             pageName: String, //h5页面英文名称
+                             createTime: Long, //用户访问事件
+                             accessKey: String //校验
                            )
 
+  val userMap = List(
+    "ogTrSw4x0lqqg3imzQCe-yiVGAZs",
+    "ogTrSwz_sYVKvs9xfeFda2wfqYw0",
+    "ogTrSwwiZtaOrLHw_5XEqsr2IvGY",
+    "ogTrSw8JrPXSzRcAGMQ1ygP0Q0gQ",
+    "ogTrSwyiwMr12wit8-vaSQ3i1T1A",
+    "ogTrSwz1w5CyQUbKcrgDUfPg93Vc"
+  )
+
+  val pageList = List(
+    ("page1", "http://aggjoa/page1"),
+    ("page2", "http://aggjoa/page2"),
+    ("page3", "http://aggjoa/page3"),
+    ("page4", "http://aggjoa/page4"),
+    ("page5", "http://aggjoa/page5"),
+    ("page6", "http://aggjoa/page6")
+  )
+
+  def generateMap() = Iterator.continually {
+    val a = random.nextInt(6)
+    Map(
+      "o" -> userMap(random.nextInt(6)),
+      "p" -> pageList(a)._1,
+      "u" -> pageList(a)._2
+    )
+  }
 
 
   val httpConf = http
-//    .baseUrl("http://flowdev.neoap.com/evoke")
-    .baseUrl("http://localhost:30377/evoke")
+    .baseUrl("http://flowdev.neoap.com/evoke")
+    //    .baseUrl("http://localhost:30377/evoke")
     .acceptHeader("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
     .doNotTrackHeader("1")
     .acceptLanguageHeader("en-US,en;q=0.5")
@@ -60,12 +88,13 @@ class EvokeApiTest extends Simulation{
 
   val scn =
     scenario("EvokeTest").exec(
-      repeat(10){
-        exec(
-          http("look")
-            .post("/api/event/h5visit")
-            .body(StringBody(CollectData4h5("o6_bmjrPTlm6_2sgVt7hMZOPfL2M","http://h5.eqxiu.com/ls/Ezs0mcEK","xin_shou_fu_li",123456789l,accessKey).asJson.noSpaces)).asJson
-        )
+      repeat(100) {
+        feed(generateMap())
+          .exec(
+            http("look")
+              .post("/api/event/h5visit")
+              .body(StringBody(CollectData4h5("${o}", "${u}", "${p}", System.currentTimeMillis()/1000, accessKey).asJson.noSpaces)).asJson
+          )
       }
     )
 
